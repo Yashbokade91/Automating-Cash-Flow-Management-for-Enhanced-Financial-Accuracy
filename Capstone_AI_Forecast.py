@@ -34,7 +34,7 @@ from pathlib import Path
 # --- Paths ---
 BASE = Path(".")
 excel_in = BASE / "Data_base.xlsx"
-excel_out = BASE / "AI_Forecast_Results.xlsx"
+excel_out = BASE / "Results.xlsx"
 
 # --- Helper functions ---
 def smape(y_true, y_pred):
@@ -50,7 +50,11 @@ def accuracy_from_error(y_true, y_pred):
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
     mae = mean_absolute_error(y_true, y_pred)
-    q75, q25 = np.percentile(y_true, [75 ,25])
+    
+    # FIX: Explicitly cast to float to prevent tuple unpacking ValueErrors in older NumPy versions
+    q75 = float(np.percentile(y_true, 75))
+    q25 = float(np.percentile(y_true, 25))
+    
     iqr = max(q75 - q25, 1e-9)
     norm_mae = mae / iqr
     acc = max(0.0, 1.0 - norm_mae)  # clamp to [0, 1]
@@ -95,15 +99,14 @@ def generate_predictions(model, df):
     df_sorted["Inflows_Lag1"] = df_sorted["Inflows ($)"].shift(1)
     df_sorted["Outflows_Lag1"] = df_sorted["Outflows ($)"].shift(1)
 
-    # Backfill the first row's NaN so the prediction array length perfectly matches the original dataframe
-    df_sorted["Inflows_Lag1"] = df_sorted["Inflows_Lag1"].bfill()
-    df_sorted["Outflows_Lag1"] = df_sorted["Outflows_Lag1"].bfill()
+    # FIX: Use dropna() instead of bfill() to prevent data leakage from the current row
+    df_valid = df_sorted.dropna(subset=["Inflows_Lag1", "Outflows_Lag1"]).copy()
 
-    X = df_sorted[["Inflows_Lag1", "Outflows_Lag1"]]
+    X = df_valid[["Inflows_Lag1", "Outflows_Lag1"]]
     preds = model.predict(X)
 
-    # Return a pandas Series aligned with the original index to ensure safe assignment in main()
-    return pd.Series(preds, index=df_sorted.index)
+    # Return a pandas Series aligned with the valid index
+    return pd.Series(preds, index=df_valid.index)
 
 def main():
     before, after, summary = load_sheets(excel_in)
@@ -119,14 +122,16 @@ def main():
     after_pred = generate_predictions(model, after)
     after["AI Forecast (Model)"] = after_pred
 
-    # Compute accuracy metrics
-    ai_acc = accuracy_from_error(after["Net Cash ($)"], after["AI Forecast (Model)"])
+    # FIX: Drop NaNs from the metric calculation to account for the first dropped row
+    valid_after = after.dropna(subset=["AI Forecast (Model)", "Net Cash ($)"])
+
+    # Compute accuracy metrics using the valid rows
+    ai_acc = accuracy_from_error(valid_after["Net Cash ($)"], valid_after["AI Forecast (Model)"])
     manual_acc = None
-    if "Manual Forecast ($)" in after.columns:
-        manual_acc = accuracy_from_error(after["Net Cash ($)"], after["Manual Forecast ($)"])
+    if "Manual Forecast ($)" in valid_after.columns:
+        manual_acc = accuracy_from_error(valid_after["Net Cash ($)"], valid_after["Manual Forecast ($)"])
 
     # Summary KPIs (Before vs After from the workbook)
-    # If Summary sheet exists with averages, we will preserve it and append model stats.
     kpi_rows = []
     kpi_rows.append({
         "Metric": "AI Forecast Accuracy (model-derived)",
