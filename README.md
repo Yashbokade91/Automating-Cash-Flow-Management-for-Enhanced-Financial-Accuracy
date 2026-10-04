@@ -1,7 +1,7 @@
 # Automating Cash Flow Management for Enhanced Financial Accuracy
 
 ## Overview
-This repository contains the code and dataset for my Engineering Management Capstone Project. The project focuses on leveraging artificial intelligence and data analytics to automate cash flow management, ultimately improving financial forecasting accuracy and operational efficiency. 
+This repository contains the code and dataset for my Engineering Management Capstone Project. The project focuses on leveraging artificial intelligence and data analytics to automate cash flow management, ultimately improving financial forecasting accuracy and operational efficiency.
 
 ## Repository Contents
 * **`Capstone_AI_Forecast.py`**: The core Python script containing the data processing, AI modeling, and forecasting logic.
