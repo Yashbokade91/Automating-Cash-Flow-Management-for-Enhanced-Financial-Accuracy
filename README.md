@@ -10,7 +10,8 @@ This repository contains the code and dataset for my Engineering Management Caps
 
 ## Repository Contents
 * **`Capstone_AI_Forecast.py`**: The core Python script containing the data processing, AI modeling, and forecasting logic.
-* **`Data_base.xlsx`**: A sample dataset utilized to train and test the forecasting models. 
+* **`Data_base.xlsx`**: A sample dataset utilized to train and test the forecasting models.
+* **`Results.xlsx`**: The Result of the Dataset after using forecasting models.
 
 ## Project Objectives
 * Automate the extraction and processing of financial data.
